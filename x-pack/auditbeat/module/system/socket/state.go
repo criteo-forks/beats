@@ -246,7 +246,7 @@ func (p *process) ResolveIP(ip net.IP) (domain string, found bool) {
 
 type socket struct {
 	sock  uintptr
-	flows map[string]*flow
+	flows map[tcpAddr]*flow
 	// Sockets have direction if they have been connect()ed or accept()ed.
 	dir     flowDirection
 	bound   bool
@@ -646,12 +646,13 @@ func (s *state) CreateSocket(ref flow) error {
 	ref.lastSeenTime = s.kernTimestampToTime(ref.lastSeen)
 	if prev, found := s.socks[ref.sock]; found {
 		// Fetch existing flow in case of TCP negotiation
-		if initial, found := prev.flows[ref.remote.String()]; found && ref.local.String() == initial.local.String() {
+		remoteAddrKey := tcpAddrKey(ref.remote.addr)
+		if initial, found := prev.flows[remoteAddrKey]; found && ref.local.String() == initial.local.String() {
 			initial.dir = ref.dir
 			initial.pid = ref.pid
 			initial.process = ref.process
 			ref.updateWith(*initial, s)
-			delete(prev.flows, ref.remote.String())
+			delete(prev.flows, remoteAddrKey)
 		}
 		// terminate existing if sock ptr is reused
 		toReport = s.onSockTerminated(prev)
@@ -719,9 +720,9 @@ func (s *state) createFlow(ref flow) error {
 	ptr := new(flow)
 	*ptr = ref
 	if sock.flows == nil {
-		sock.flows = make(map[string]*flow, 1)
+		sock.flows = make(map[tcpAddr]*flow, 1)
 	}
-	sock.flows[ref.remote.addr.String()] = ptr
+	sock.flows[tcpAddrKey(ref.remote.addr)] = ptr
 	s.flowLRU.Add(ptr)
 	s.numFlows++
 	return nil
@@ -781,7 +782,7 @@ func (s *state) UpdateFlowWithCondition(ref flow, cond func(*flow) bool) error {
 	if !found {
 		return s.createFlow(ref)
 	}
-	prev, found := sock.flows[ref.remote.addr.String()]
+	prev, found := sock.flows[tcpAddrKey(ref.remote.addr)]
 	if !found {
 		// Sock has been already closed and it may be receiving a SYN for a different
 		// flow.
@@ -874,7 +875,7 @@ func (s *state) onFlowTerminated(f *flow) (toReport helper.LinkedList) {
 	f.done = true
 	// Unbind this flow from its parent
 	if parent, found := s.socks[f.sock]; found {
-		delete(parent.flows, f.remote.addr.String())
+		delete(parent.flows, tcpAddrKey(f.remote.addr))
 	}
 	s.numFlows--
 	toReport.Add(f)
@@ -1064,4 +1065,28 @@ func (s *state) kernTimestampToTime(ts kernelTime) time.Time {
 		return now
 	}
 	return s.kernelEpoch.Add(time.Duration(ts))
+}
+
+type tcpAddr struct {
+	ipHi  uint64
+	ipLow uint64
+	port  uint16
+}
+
+func tcpAddrKey(addr net.TCPAddr) (key tcpAddr) {
+	ip := addr.IP
+	key.port = uint16(addr.Port)
+
+	// copied from netip.AddrFrom{4,16}
+	switch len(ip) {
+	case 4:
+		key.ipLow = 0xffff00000000 | uint64(ip[0])<<24 | uint64(ip[1])<<16 | uint64(ip[2])<<8 | uint64(ip[3])
+	case 16:
+		key.ipHi = uint64(ip[7]) | uint64(ip[6])<<8 | uint64(ip[5])<<16 | uint64(ip[4])<<24 |
+			uint64(ip[3])<<32 | uint64(ip[2])<<40 | uint64(ip[1])<<48 | uint64(ip[0])<<56
+		key.ipLow = uint64(ip[15]) | uint64(ip[14])<<8 | uint64(ip[13])<<16 | uint64(ip[12])<<24 |
+			uint64(ip[11])<<32 | uint64(ip[10])<<40 | uint64(ip[9])<<48 | uint64(ip[8])<<56
+	}
+
+	return
 }
