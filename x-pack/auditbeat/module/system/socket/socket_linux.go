@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 
 	"github.com/elastic/beats/v7/libbeat/common"
