@@ -15,6 +15,7 @@ import (
 	"github.com/elastic/beats/v7/x-pack/auditbeat/module/system/socket/helper"
 	"github.com/elastic/beats/v7/x-pack/auditbeat/tracing"
 	"github.com/elastic/elastic-agent-libs/mapstr"
+	"golang.org/x/exp/slices"
 )
 
 // Context shared with guesses.
@@ -25,6 +26,10 @@ type Context struct {
 	Vars mapstr.M
 	// Timeout is the maximum time allowed to wait for a guess to complete.
 	Timeout time.Duration
+	// SkippedProbes are guesses that are meant to be skipped to prevent Auditbeat
+	// from crashing at startup. This also requires that every kprobe using the guessed
+	// parameters are not installed by using the socket.DisableKProbe config option.
+	SkippedProbes []string
 }
 
 // Guesser is the interface that must be fulfilled to perform guesses using
@@ -261,6 +266,10 @@ func GuessAll(installer helper.ProbeInstaller, ctx Context) (err error) {
 	for len(list) > 0 {
 		var next []Guesser
 		for _, guesser := range list {
+			// check if the guess is skipped
+			if slices.Index(ctx.SkippedProbes, guesser.Name()) != -1 {
+				continue
+			}
 			if cond, isCond := guesser.(ConditionalGuesser); isCond {
 				mustRun, err := cond.Condition(ctx)
 				if err != nil {

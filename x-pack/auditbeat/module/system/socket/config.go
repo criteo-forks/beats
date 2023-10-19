@@ -68,6 +68,9 @@ type Config struct {
 
 	// DisableKprobe allows to disable specific kprobes by their probe name.
 	DisableKprobe []string `config:"socket.disable_kprobe"`
+
+	// DisableGuess allows to disable specific kprobes by their probe name.
+	DisableGuess []string `config:"socket.disable_guess"`
 }
 
 // Validate validates the socket metricset config.
