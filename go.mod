@@ -205,8 +205,11 @@ require (
 	go.elastic.co/apm/module/apmhttp/v2 v2.0.0
 	go.elastic.co/apm/v2 v2.0.0
 	go.mongodb.org/mongo-driver v1.5.1
+	golang.org/x/tools/go/vcs v0.1.0-deprecated
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
+
+require github.com/rivo/uniseg v0.2.0 // indirect
 
 require (
 	cloud.google.com/go v0.104.0 // indirect
@@ -292,7 +295,7 @@ require (
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/markbates/pkger v0.17.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/iochan v1.0.0 // indirect

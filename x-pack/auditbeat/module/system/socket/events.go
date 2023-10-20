@@ -192,6 +192,7 @@ func (e *tcpAcceptResult) asFlow() flow {
 	evTime := kernelTime(e.Meta.Timestamp)
 	f := flow{
 		sock:     e.Sock,
+		probes:   []string{e.Meta.ProbeName},
 		pid:      e.Meta.PID,
 		inetType: inetType(e.Af),
 		proto:    protoTCP,
@@ -239,6 +240,7 @@ func (e *tcpAcceptResult4) asFlow() flow {
 	f := flow{
 		sock:     e.Sock,
 		pid:      e.Meta.PID,
+		probes:   []string{e.Meta.ProbeName},
 		inetType: inetType(e.Af),
 		proto:    protoTCP,
 		dir:      directionIngress,
@@ -287,6 +289,7 @@ func (e *tcpSendMsgCall) asFlow() flow {
 		inetType: inetType(e.Af),
 		proto:    protoTCP,
 		lastSeen: kernelTime(e.Meta.Timestamp),
+		probes:   []string{e.Meta.ProbeName},
 	}
 	if e.Af == unix.AF_INET {
 		f.local = newEndpointIPv4(e.LAddr, e.LPort, 0, 0)
@@ -334,6 +337,7 @@ func (e *tcpSendMsgCall4) asFlow() flow {
 		inetType: inetType(e.Af),
 		proto:    protoTCP,
 		lastSeen: kernelTime(e.Meta.Timestamp),
+		probes:   []string{e.Meta.ProbeName},
 	}
 	f.local = newEndpointIPv4(e.LAddr, e.LPort, 0, 0)
 	f.remote = newEndpointIPv4(e.RAddr, e.RPort, 0, 0)
@@ -376,6 +380,7 @@ func (e *ipLocalOutCall) asFlow() flow {
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv4(e.LAddr, e.LPort, 1, uint64(e.Size)),
 		remote:   newEndpointIPv4(e.RAddr, e.RPort, 0, 0),
+		probes:   []string{e.Meta.ProbeName},
 	}
 }
 
@@ -426,6 +431,7 @@ func (e *inet6CskXmitCall) asFlow() flow {
 		pid:      e.Meta.PID,
 		inetType: inetTypeIPv6,
 		proto:    protoTCP,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv6(e.LAddr6a, e.LAddr6b, e.LPort, 1, uint64(e.Size)),
 		remote:   newEndpointIPv6(e.RAddr6a, e.RAddr6b, e.RPort, 0, 0),
@@ -465,6 +471,7 @@ func (e *tcpV4DoRcv) asFlow() flow {
 		pid:      e.Meta.PID,
 		inetType: inetTypeIPv4,
 		proto:    protoTCP,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv4(e.LAddr, e.LPort, 0, 0),
 		remote:   newEndpointIPv4(e.RAddr, e.RPort, 1, uint64(e.Size)),
@@ -506,6 +513,7 @@ func (e *tcpV6DoRcv) asFlow() flow {
 		pid:      e.Meta.PID,
 		inetType: inetTypeIPv6,
 		proto:    protoTCP,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv6(e.LAddr6a, e.LAddr6b, e.LPort, 0, 0),
 		remote:   newEndpointIPv6(e.RAddr6a, e.RAddr6b, e.RPort, 1, uint64(e.Size)),
@@ -558,6 +566,7 @@ func (e *udpSendMsgCall) asFlow() flow {
 		proto:    protoUDP,
 		dir:      directionEgress,
 		lastSeen: kernelTime(e.Meta.Timestamp),
+		probes:   []string{e.Meta.ProbeName},
 		local:    newEndpointIPv4(e.LAddr, e.LPort, 1, uint64(e.Size)+minIPv4UdpPacketSize),
 		remote:   newEndpointIPv4(raddr, rport, 0, 0),
 	}
@@ -611,6 +620,7 @@ func (e *udpv6SendMsgCall) asFlow() flow {
 		inetType: inetTypeIPv6,
 		proto:    protoUDP,
 		dir:      directionEgress,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		// In IPv6, udpv6_sendmsg increments local counters as there is no
 		// corresponding ip6_local_out call.
@@ -671,6 +681,7 @@ func (e *udpQueueRcvSkb) asFlow() flow {
 		inetType: inetTypeIPv4,
 		proto:    protoUDP,
 		dir:      directionIngress,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv4(e.LAddr, e.LPort, 0, 0),
 	}
@@ -745,6 +756,7 @@ func (e *udpv6QueueRcvSkb) asFlow() flow {
 		inetType: inetTypeIPv6,
 		proto:    protoUDP,
 		dir:      directionIngress,
+		probes:   []string{e.Meta.ProbeName},
 		lastSeen: kernelTime(e.Meta.Timestamp),
 		local:    newEndpointIPv6(e.LAddrA, e.LAddrB, e.LPort, 0, 0),
 	}
@@ -810,6 +822,7 @@ func (e *sockInitData) Update(s *state) error {
 		if iCreate, ok := ev.(*inetCreate); ok {
 			return s.CreateSocket(flow{
 				sock:     e.Sock,
+				probes:   []string{e.Meta.ProbeName},
 				pid:      e.Meta.PID,
 				proto:    flowProto(iCreate.Proto),
 				created:  kernelTime(e.Meta.Timestamp),

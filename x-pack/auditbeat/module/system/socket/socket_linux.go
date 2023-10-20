@@ -421,9 +421,10 @@ func (m *MetricSet) Setup() (err error) {
 	//
 	if err = guess.GuessAll(m.installer,
 		guess.Context{
-			Log:     m.log,
-			Vars:    m.templateVars,
-			Timeout: m.config.GuessTimeout,
+			Log:           m.log,
+			Vars:          m.templateVars,
+			Timeout:       m.config.GuessTimeout,
+			SkippedProbes: m.config.DisableGuess,
 		}); err != nil {
 		return fmt.Errorf("unable to guess one or more required parameters: %w", err)
 	}

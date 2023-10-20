@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/joeshaw/multierror"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -159,6 +160,8 @@ func newEndpointIPv6(beIPa uint64, beIPb uint64, bePort uint16, pkts uint64, byt
 
 type flow struct {
 	prev, next helper.LinkedElement
+
+	probes []string
 
 	sock              uintptr
 	inetType          inetType
@@ -794,6 +797,11 @@ func (s *state) UpdateFlowWithCondition(ref flow, cond func(*flow) bool) error {
 	if cond != nil && !cond(prev) {
 		return nil
 	}
+	for _, probe := range ref.probes {
+		if slices.Index(prev.probes, probe) == -1 {
+			prev.probes = append(prev.probes, probe)
+		}
+	}
 	s.mutualEnrich(sock, &ref)
 	prev.updateWith(ref, s)
 	s.enrichDNS(prev)
@@ -981,6 +989,10 @@ func (f *flow) toEvent(final bool) (ev mb.Event, err error) {
 
 	metricset := mapstr.M{
 		"kernel_sock_address": fmt.Sprintf("0x%x", f.sock),
+	}
+
+	if len(f.probes) > 0 {
+		metricset["kprobes"] = f.probes
 	}
 
 	if f.pid != 0 {
